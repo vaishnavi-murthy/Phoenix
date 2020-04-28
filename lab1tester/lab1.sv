@@ -128,6 +128,7 @@ module tile_generator (input logic [9:0] hcount, input logic [9:0] vcount, input
      logic [7:0] pattern_gen_table [2047:0];
      logic [47:0] color_table [31:0];
      
+     logic [9:0] base_add;
      logic [7:0] tile_name;
      logic [10:0] gen_add;
      logic [7:0] pixel_row;
@@ -158,16 +159,16 @@ module tile_generator (input logic [9:0] hcount, input logic [9:0] vcount, input
 
         end
 
-      assign base_add={vcount[7:4], hcount[7:4]};
-      //assign gen_add = {tile_name[7:0], vcount[2:0]};
-      assign gen_add = vcount;
+      assign base_add={vcount[7:3], hcount[7:3]};
+      assign gen_add = {tile_name[7:0], vcount[2:0]};
+      //assign gen_add = vcount;
       assign pixel_col = hcount[2:0];
       assign final_color = pixel_row[pixel_col] == 1 ? pattern_colors[47:24] : pattern_colors[23:0]; 
       //assign base_add = 35;
 
       always_ff @(posedge clk) begin
-	      //tile_name <= pattern_name_table[base_add];
-	      tile_name <= 4;
+	      tile_name <= pattern_name_table[base_add];
+	      //tile_name <= 4;
 	      //final_color <= 24'h0000ff;
 	      //final_color <= {tile_name, tile_name, tile_name};
 	      //if (tile_name == 0) final_color <= 24'hffffff;
