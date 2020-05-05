@@ -25,16 +25,23 @@ module lab1( input logic        CLOCK_50,
    logic [10:0]	   hcount;
    logic [9:0]     vcount;
    logic [23:0]    final_color;
+   logic [23:0]    sprite_color;
 
 
    vga_counters counters(.clk50(clk), .*);
-   tile_generator tiles(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .*); // Chnaged from [10:1] to [10:0]
+   tile_generator tiles(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .*); 
+   sprite_generator sprites(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .*);
 
    always_comb begin
       {VGA_R, VGA_G, VGA_B} = {8'hff, 8'hff, 8'hff};
       if (VGA_BLANK_N )
-	      {VGA_R, VGA_G, VGA_B} = {final_color[23:16], final_color[15:8], final_color[7:0]};
-      	      //{VGA_R, VGA_G, VGA_B} = {8'hff, 8'hff, 8'h00};
+	      //{VGA_R, VGA_G, VGA_B} = {sprite_color[23:16], sprite_color[15:8], sprite_color[7:0]};
+      	      if (sprite_color)
+		      {VGA_R, VGA_G, VGA_B} = {sprite_color[23:16], sprite_color[15:8], sprite_color[7:0]};
+	      else
+	              {VGA_R, VGA_G, VGA_B} = {final_color[23:16], final_color[15:8], final_color[7:0]};
+      	      
+	      //{VGA_R, VGA_G, VGA_B} = {8'hff, 8'hff, 8'h00};
 	//if (hcount[10:6] == 5'd3 &&
 	    //vcount[9:5] == 5'd3)
 	  //{VGA_R, VGA_G, VGA_B} = {8'hff, 8'hff, 8'hff};
@@ -322,18 +329,95 @@ module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, inpu
 endmodule
 
 
-module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, input logic clk, output logic [23:0] final_color );
+module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, input logic clk, output logic [23:0] sprite_color );
 	
-	logic [2:0] sprite_att_table [24:0]
+	logic [7:0] sprite_att_table [3:0];
+	logic [15:0] pattern_table [2047:0];
+	logic [95:0] color_table [1:0];
 
-	logic [10:0] base_add;
+	logic [11:0] pattern_add;
+	logic [7:0] name;
+	logic [15:0] pixel_row;
+	logic [3:0] pixel_col;
+	logic [95:0] colors;
+	int i;
+
 
 	initial
 	   begin
-		logic [7:0] = fill_table;
+		sprite_att_table[0] = 975;  // vertical position to start
+		sprite_att_table[1] = 1320;  // horizontal position to start
+		sprite_att_table[2] = 0;      // Name [Address to find ship]
+		sprite_att_table[3] = 1;      // tag
+
+		pattern_table[0] = {8'h00, 8'h00};
+		pattern_table[1] = {8'h01, 8'h80};
+		pattern_table[2] = {8'h01, 8'h80};
+		pattern_table[3] = {8'h13, 8'hC8};
+		pattern_table[4] = {8'h1B, 8'hD8};
+		pattern_table[5] = {8'h1F, 8'hF8};
+		pattern_table[6] = {8'h17, 8'hE8};
+		pattern_table[7] = {8'h03, 8'hC0};
+		pattern_table[8] = {8'h03, 8'hC0};
+		pattern_table[9] = {8'h27, 8'hE4};
+		pattern_table[10] = {8'h2D, 8'hB4};
+		pattern_table[11] = {8'h39, 8'h9C};
+		pattern_table[12] = {8'h37, 8'hEC};
+		pattern_table[13] = {8'h25, 8'hA4};
+		pattern_table[14] = {8'h00, 8'h00};
+		pattern_table[15] = {8'h00, 8'h00};
+
+		//pattern_table[16] = {8'h00};
+		//pattern_table[17] = {8'h80};
+		//pattern_table[18] = {8'h80};
+		//pattern_table[19] = {8'hC8};
+		//pattern_table[20] = {8'hD8};
+		//pattern_table[21] = {8'hF8};
+		//pattern_table[22] = {8'hE8};
+		//pattern_table[23] = {8'hC0};
+		//pattern_table[24] = {8'hC0};
+		//pattern_table[25] = {8'hE4};
+		//pattern_table[26] = {8'hB4};
+		//pattern_table[27] = {8'h9C};
+		//pattern_table[28] = {8'hEC};
+		//pattern_table[29] = {8'hA4};
+		//pattern_table[30] = {8'h00};
+		//pattern_table[31] = {8'h00};
+
+
+
+		color_table[0] = {24'hffff00, 24'hff0000, 24'hffffff, 24'hffffff}; //yellow-red-red-white
+
 	   end
 	
-	assign base_add = {vcount[8:3], hcount[10:4]} - 48*vount[8:3];
+	assign pattern_add = {name, vcount[3:0]}; // vcount at 4 to get a 16 by 16 image
+	assign pixel_col = {hcount[4:1]};
+	assign pixel_check = pixel_col + 1;
+	//assign sprite_color = pixel_row[pixel_col] == 1 ? colors[47:24] : colors[23:0]; 
+
+	always_ff @(posedge clk) begin
+		if (vcount >= sprite_att_table[0] && vcount < sprite_att_table[0] + 16 && hcount >= sprite_att_table[1] && hcount < sprite_att_table[1] + 32) 
+			name <= sprite_att_table[2];
+		else	
+			name <= 1;
+
+		pixel_row <= pattern_table[pattern_add];
+		
+		colors <= color_table[name];	
+		
+		if (pixel_row[pixel_col] == 1)
+			if (pixel_row[pixel_check] == 1)
+				sprite_color <= colors[95:72];
+			else
+				sprite_color <= colors[71:48];
+		else
+			if (pixel_row[pixel_check] == 1)
+				sprite_color <= colors[47:24];
+			else
+				sprite_color <= colors[23:0];	
+		//for (i = 0; i < sizeof(sprite_att_table); i = i+4) {
+		//	target_add <= {sprite_att_table[i], sprite_att_table[i+1]}
+	end 
 
 
 
