@@ -335,6 +335,7 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
 	logic [15:0] pattern_table [2047:0];
 	logic [95:0] color_table [1:0];
 
+	logic [] pos_y;
 	logic [11:0] pattern_add;
 	logic [7:0] name;
 	logic [9:0] vertical;
@@ -347,8 +348,8 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
 
 	initial
 	   begin
-		sprite_att_table[0] = 975;  // vertical position to start
-		sprite_att_table[1] = 1320;  // horizontal position to start
+		sprite_att_table[0] = 3000;  // vertical position to start
+		sprite_att_table[1] = 2150;  // horizontal position to start
 		sprite_att_table[2] = 0;      // Name [Address to find ship]
 		sprite_att_table[3] = 1;      // tag
 
@@ -394,43 +395,52 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
 
 	   end
 	
-	//assign pattern_add = {name, vcount[3:0]}; // vcount at 4 to get a 16 by 16 image
-	//assign pixel_col = {hcount[4:1]};
-	//assign pixel_check = pixel_col + 1;
+	assign pattern_add = {name, vertical[3:0]}; // vcount at 4 to get 16 by 16 image
+	assign pixel_col = horizontal[4:1];
 	assign sprite_color = pixel_row[pixel_col] == 1 ? colors[47:24] : colors[23:0];
 
-	/*always_comb begin
-		if (vcount >= sprite_att_table[0] && vcount < sprite_att_table[0] + 16 && hcount >= sprite_att_table[1] && hcount < sprite_att_table[1] + 32) begin 
-			vertical = vcount - sprite_att_table[0];
-			pattern_add = {sprite_att_table[2], vertical[3:0]};
-
+	always_comb begin
+		if (vcount >= sprite_att_table[0] && vcount < sprite_att_table[0] + 16 && hcount >= sprite_att_table[1] && hcount < sprite_att_table[1] + 31) begin 
 			horizontal = hcount - sprite_att_table[1];
-			pixel_col = horizontal[3:0];
-		end else
-			pattern_add = {sprite_att_table[4], vcount[3:0]};
-			pixel_col = hcount[4:1];
-		end*/
+			vertical = (vcount - sprite_att_table[0]);
+			//vertical = (vcount - 48*vcount[8:3]) - sprite_att_table[0];
+			name = sprite_att_table[2];
+		end else begin
+			horizontal = hcount;
+			vertical = vcount;
+			name = sprite_att_table[4];
+		end
+	end
 		
 
 	always_ff @(posedge clk) begin
-		if (vcount >= sprite_att_table[0] && vcount < sprite_att_table[0] + 16 && hcount >= sprite_att_table[1] && hcount < sprite_att_table[1] + 32) begin 
-			vertical <= vcount - sprite_att_table[0];
-			pattern_add <= {sprite_att_table[2], vertical[3:0]};
-
-			horizontal <= hcount - sprite_att_table[1];
-			pixel_col <= horizontal[3:0];
-		end else
-			pattern_add <= {sprite_att_table[4], vcount[3:0]};
-			pixel_col <= hcount[4:1];
-
 		pixel_row <= pattern_table[pattern_add];
 		
 		colors <= color_table[name];
+		//for (i=0; i<sizeof(sprite_att_table); i = i+4) target_add <=
+		//{sprite_att_table[i], sprite_att_table[i+1]}
 	end	
 		
-		//for (i = 0; i < sizeof(sprite_att_table); i = i+4) {
-		//	target_add <= {sprite_att_table[i], sprite_att_table[i+1]}
-	
+	/*always_comb begin
+		if (vcount >= sprite_att_table[0] && vcount < sprite_att_table[0] + 16 && hcount >= sprite_att_table[1] && hcount < sprite_att_table[1] + 31) begin
+		       horizontal = hcount - sprite_att_table[1];	
+			vertical = vcount - sprite_att_table[0];
+			name = sprite_att_table[2];
+
+			//pattern_add = {name, vertical[3:0]};
+
+			//horizontal = hcount - sprite_att_table[1];
+			//pixel_col = horizontal[3:0];
+		end else begin
+			//pattern_add = {sprite_att_table[4], vcount[3:0]};
+			horizontal = hcount;
+			vertical = vcount;
+			name = sprite_att_table[4];
+			//pattern_add = {name, vertical[3:0]};
+			//pixel_col = hcount[4:1];
+		end
+	end*/
+
 
 
 
