@@ -157,7 +157,7 @@ module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, inpu
 	  for (i = 35; i < 40; i = i+1) pattern_name_table[i] = i-24;  // Hi Score
 	  
 	  for (i = 55; i < 60; i = i+1) pattern_name_table[i] = i-44; // Score 2
-	  pattern_name_table[60] = 2;
+	  pattern_name_table[60] = 9;
 	  
 	  for (i = 93; i < 97; i = i+1) pattern_name_table[i] = 0;
 	  for (i = 114; i < 118; i = i+1) pattern_name_table[i] = 0;
@@ -213,6 +213,15 @@ module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, inpu
 	  pattern_gen_table[25] = 8'h40; //20
 	  pattern_gen_table[24] = 8'h3E;
 
+	  // Number 9
+	  pattern_gen_table[79] = 8'h00;
+	  pattern_gen_table[78] = 8'hF8;
+ 	  pattern_gen_table[77] = 8'h88;
+ 	  pattern_gen_table[76] = 8'h88;
+ 	  pattern_gen_table[75] = 8'hF8;
+ 	  pattern_gen_table[74] = 8'h08;
+ 	  pattern_gen_table[73] = 8'h08;
+	  pattern_gen_table[72] = 8'h08;
 
 	  // Dash --> 10
 	  pattern_gen_table[80] = 8'h00;
@@ -329,117 +338,255 @@ module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, inpu
 endmodule
 
 
-module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, input logic clk, output logic [23:0] sprite_color );
+module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, input logic clk, output logic [23:0] sprite_color);
 	
-	logic [7:0] sprite_att_table [4:0];
-	logic [15:0] pattern_table [2047:0];
-	logic [95:0] color_table [1:0];
+	logic [15:0] sprite_att_table [28:0];
+	logic [31:0] pattern_table [2047:0];
+	logic [95:0] color_table [6:0];
 
-	logic [] pos_y;
-	logic [11:0] pattern_add;
-	logic [7:0] name;
+	logic [12:0] pattern_add;
+	logic [15:0] name;
 	logic [9:0] vertical;
 	logic [10:0] horizontal;
-	logic [15:0] pixel_row;
-	logic [3:0] pixel_col;
+	logic [31:0] pixel_row;
+	logic [5:0] pixel_col;
+	logic [5:0] before_col;
+	logic [5:0] after_col;
 	logic [95:0] colors;
 	int i;
+	int j;
 
 
 	initial
 	   begin
-		sprite_att_table[0] = 3000;  // vertical position to start
-		sprite_att_table[1] = 2150;  // horizontal position to start
+		sprite_att_table[0] = 400;  // vertical position of ship to start
+		sprite_att_table[1] = 550;  // horizontal position to start
 		sprite_att_table[2] = 0;      // Name [Address to find ship]
 		sprite_att_table[3] = 1;      // tag
 
-		sprite_att_table[4] = 1;
+		sprite_att_table[4] = 300; // Player bullet
+		sprite_att_table[5] = 550;
+		sprite_att_table[6] = 1;
+		sprite_att_table[7] = 1;
 
-		pattern_table[0] = {8'h00, 8'h00};
-		pattern_table[1] = {8'h01, 8'h80};
-		pattern_table[2] = {8'h01, 8'h80};
-		pattern_table[3] = {8'h13, 8'hC8};
-		pattern_table[4] = {8'h1B, 8'hD8};
-		pattern_table[5] = {8'h1F, 8'hF8};
-		pattern_table[6] = {8'h17, 8'hE8};
-		pattern_table[7] = {8'h03, 8'hC0};
-		pattern_table[8] = {8'h03, 8'hC0};
-		pattern_table[9] = {8'h27, 8'hE4};
-		pattern_table[10] = {8'h2D, 8'hB4};
-		pattern_table[11] = {8'h39, 8'h9C};
-		pattern_table[12] = {8'h37, 8'hEC};
-		pattern_table[13] = {8'h25, 8'hA4};
-		pattern_table[14] = {8'h00, 8'h00};
-		pattern_table[15] = {8'h00, 8'h00};
+		sprite_att_table[8] = 200; // Bird
+		sprite_att_table[9] = 200;
+		sprite_att_table[10] = 2;
+		sprite_att_table[11] = 1;
 
-		//pattern_table[16] = {8'h00};
-		//pattern_table[17] = {8'h80};
-		//pattern_table[18] = {8'h80};
-		//pattern_table[19] = {8'hC8};
-		//pattern_table[20] = {8'hD8};
-		//pattern_table[21] = {8'hF8};
-		//pattern_table[22] = {8'hE8};
-		//pattern_table[23] = {8'hC0};
-		//pattern_table[24] = {8'hC0};
-		//pattern_table[25] = {8'hE4};
-		//pattern_table[26] = {8'hB4};
-		//pattern_table[27] = {8'h9C};
-		//pattern_table[28] = {8'hEC};
-		//pattern_table[29] = {8'hA4};
-		//pattern_table[30] = {8'h00};
-		//pattern_table[31] = {8'h00};
+		sprite_att_table[12] = 200; // Bird flying left 
+		sprite_att_table[13] = 250;
+		sprite_att_table[14] = 3;
+		sprite_att_table[15] = 1;
+
+		sprite_att_table[16] = 200; // Bird flying right
+		sprite_att_table[17] = 150;
+		sprite_att_table[18] = 4;
+		sprite_att_table[19] = 1;
+
+		sprite_att_table[20] = 225; // bird bullet
+		sprite_att_table[21] = 200;
+		sprite_att_table[22] = 5;
+		sprite_att_table[23] = 1;
+
+		sprite_att_table[24] = 200; // Explosion graphic
+		sprite_att_table[25] = 650;
+		sprite_att_table[26] = 6;
+		sprite_att_table[27] = 1;
+		
+
+		sprite_att_table[28] = 9; // blank name
+
+		pattern_table[0] = {8'h00, 8'h00, 8'h00, 8'h00};
+		pattern_table[1] = {8'h00, 8'h00, 8'h00, 8'h00};
+		pattern_table[2] = {8'h00, 8'h01, 8'h80, 8'h00};
+		pattern_table[3] = {8'h00, 8'h01, 8'h80, 8'h00};
+		pattern_table[4] = {8'h00, 8'h01, 8'h80, 8'h00};
+		pattern_table[5] = {8'h00, 8'h43, 8'hC2, 8'h00};
+		pattern_table[6] = {8'h00, 8'h43, 8'hC2, 8'h00};
+		pattern_table[7] = {8'h00, 8'h43, 8'hC2, 8'h00};
+		pattern_table[8] = {8'h00, 8'h63, 8'hC6, 8'h00};
+		pattern_table[9] = {8'h00, 8'h73, 8'hCE, 8'h00};
+		pattern_table[10] = {8'h00, 8'h7B, 8'hDE, 8'h00};
+		pattern_table[11] = {8'h00, 8'h7F, 8'hFE, 8'h00};
+		pattern_table[12] = {8'h00, 8'h5F, 8'hFA, 8'h00};
+		pattern_table[13] = {8'h00, 8'h4F, 8'hF2, 8'h00};
+		pattern_table[14] = {8'h00, 8'h07, 8'hE0, 8'h00};
+		pattern_table[15] = {8'h00, 8'h03, 8'hC0, 8'h00};
+		pattern_table[16] = {8'h00, 8'h03, 8'hC0, 8'h00};
+		pattern_table[17] = {8'h00, 8'h07, 8'hE0, 8'h00};
+		pattern_table[18] = {8'h00, 8'h8F, 8'hF1, 8'h00};
+		pattern_table[19] = {8'h00, 8'h9F, 8'hF9, 8'h00};
+		pattern_table[20] = {8'h00, 8'hBF, 8'hFD, 8'h00};
+		pattern_table[21] = {8'h00, 8'hFF, 8'hFF, 8'h00};
+		pattern_table[22] = {8'h00, 8'hFB, 8'hDF, 8'h00};
+		pattern_table[23] = {8'h00, 8'hF3, 8'hCF, 8'h00};
+		pattern_table[24] = {8'h00, 8'hE3, 8'hC7, 8'h00};
+		pattern_table[25] = {8'h00, 8'hC3, 8'hC3, 8'h00};
+		pattern_table[26] = {8'h00, 8'h83, 8'hC1, 8'h00};
+		pattern_table[27] = {8'h00, 8'h9F, 8'hF9, 8'h00};
+		pattern_table[28] = {8'h00, 8'h99, 8'h99, 8'h00};
+		pattern_table[29] = {8'h00, 8'h99, 8'h99, 8'h00};
+		pattern_table[30] = {8'h00, 8'h00, 8'h00, 8'h00};
+		pattern_table[31] = {8'h00, 8'h00, 8'h00, 8'h00};
+
+		for (i = 32; i < 64; i = i+1) pattern_table[i] = {8'h00, 8'h00, 8'h00, 8'h00};
+		for (i = 45; i < 51; i = i+1) pattern_table[i] = {8'h00, 8'h01, 8'h00, 8'h00};
+
+		// Bird
+		for (i = 64; i < 69; i = i+1) pattern_table[i] = {8'h00, 8'h00, 8'h00, 8'h00};
+		pattern_table[69] = {8'h00, 8'h06, 8'h60, 8'h00};
+		pattern_table[70] = {8'h00, 8'h86, 8'h61, 8'h00};
+		pattern_table[71] = {8'h01, 8'hC1, 8'h83, 8'h80};
+		pattern_table[72] = {8'h03, 8'hE1, 8'h87, 8'hC0};
+		pattern_table[73] = {8'h07, 8'hF1, 8'h8F, 8'hE0};
+		pattern_table[74] = {8'h0F, 8'hF9, 8'h9F, 8'hF0};
+		pattern_table[75] = {8'h0F, 8'hFF, 8'hFF, 8'hF0};
+		pattern_table[76] = {8'h0F, 8'hFF, 8'hFF, 8'hF0};
+		pattern_table[77] = {8'h0F, 8'h8F, 8'hF1, 8'hF0};
+		pattern_table[78] = {8'h0F, 8'h8F, 8'hF1, 8'hF0};
+		pattern_table[79] = {8'h0F, 8'h8F, 8'hF1, 8'hF0};
+		pattern_table[80] = {8'h0F, 8'h8F, 8'hF1, 8'hF0};
+		pattern_table[81] = {8'h07, 8'h8F, 8'hF1, 8'hE0};
+		pattern_table[82] = {8'h03, 8'hCF, 8'hF3, 8'hC0};
+		pattern_table[83] = {8'h01, 8'hE7, 8'hE7, 8'h80};
+		pattern_table[84] = {8'h00, 8'hE3, 8'hC7, 8'h00};
+		pattern_table[85] = {8'h00, 8'h61, 8'h86, 8'h00};
+		pattern_table[86] = {8'h00, 8'h21, 8'h84, 8'h00};
+		pattern_table[87] = {8'h00, 8'h21, 8'h84, 8'h00};
+		for (i = 88; i < 96; i = i+1) pattern_table[i] = {8'h00, 8'h00, 8'h00, 8'h00};
+
+		// flying bird moving left
+		for (i = 96; i < 104; i = i+1) pattern_table[i] = {8'h00, 8'h00, 8'h00, 8'h00};
+		pattern_table[104] = {8'h00, 8'h1F, 8'hFF, 8'hC0};
+		pattern_table[105] = {8'h00, 8'h1C, 8'h1F, 8'h80};
+		pattern_table[106] = {8'h00, 8'h78, 8'h1F, 8'h00};
+		pattern_table[107] = {8'h00, 8'h00, 8'h1E, 8'h00};
+		pattern_table[108] = {8'h00, 8'h07, 8'hFC, 8'h00};
+		pattern_table[109] = {8'h00, 8'h0F, 8'hF8, 8'h60};
+		pattern_table[110] = {8'h00, 8'h1F, 8'hF8, 8'h60};
+		pattern_table[111] = {8'h00, 8'hFF, 8'hFF, 8'h80};
+		pattern_table[112] = {8'h00, 8'hFF, 8'hFF, 8'h80};
+		pattern_table[113] = {8'h00, 8'h1F, 8'hF8, 8'h60};
+		pattern_table[114] = {8'h00, 8'h0F, 8'hF8, 8'h60};
+		pattern_table[115] = {8'h00, 8'h07, 8'hFC, 8'h00};
+		pattern_table[116] = {8'h00, 8'h00, 8'h1E, 8'h00};
+		pattern_table[117] = {8'h00, 8'h78, 8'h1F, 8'h00};
+		pattern_table[118] = {8'h00, 8'h1C, 8'h1F, 8'h80};
+		pattern_table[119] = {8'h00, 8'h1F, 8'hFF, 8'hC0};
+		for (i = 120; i < 128; i = i+1) pattern_table[i] = {8'h00, 8'h00, 8'h00, 8'h00};
+
+		// flying bird moving right
+		for (i = 128; i < 136; i = i+1) pattern_table[i] = {8'h00, 8'h00, 8'h00, 8'h00};
+		pattern_table[136] = {8'h03, 8'hFF, 8'hFC, 8'h00};
+		pattern_table[137] = {8'h01, 8'hF8, 8'h3C, 8'h00};
+		pattern_table[138] = {8'h00, 8'hF8, 8'h1E, 8'h00};
+		pattern_table[139] = {8'h00, 8'h78, 8'h00, 8'h00};
+		pattern_table[140] = {8'h00, 8'h3F, 8'h07, 8'h00};
+		pattern_table[141] = {8'h06, 8'h1F, 8'hF0, 8'h60};
+		pattern_table[142] = {8'h06, 8'h1F, 8'hF8, 8'h60};
+		pattern_table[143] = {8'h01, 8'hFF, 8'hFF, 8'h80};	
+		pattern_table[144] = {8'h01, 8'hFF, 8'hFF, 8'h80};
+		pattern_table[145] = {8'h06, 8'h1F, 8'hF8, 8'h60};
+		pattern_table[146] = {8'h06, 8'h1F, 8'hF0, 8'h60};
+		pattern_table[147] = {8'h00, 8'h3F, 8'h07, 8'h00};
+		pattern_table[148] = {8'h00, 8'h78, 8'h00, 8'h00};
+		pattern_table[149] = {8'h00, 8'hF8, 8'h1E, 8'h00};
+		pattern_table[150] = {8'h01, 8'hF8, 8'h3C, 8'h00};
+		pattern_table[151] = {8'h03, 8'hFF, 8'hFC, 8'h00};	
+		for (i = 152; i < 160; i = i+1) pattern_table[i] = {8'h00, 8'h00, 8'h00, 8'h00};
 
 
+		// Bullets for the bird
+		for (i = 160; i < 192; i = i+1) pattern_table[i] = {8'h00, 8'h00, 8'h00, 8'h00};
+		for (i = 174; i < 178; i = i+1) pattern_table[i] = {8'h00, 8'h01, 8'h80, 8'h00};
 
-		color_table[0] = {24'hff0000, 24'hffffff}; 
+		for (i = 192; i < 224; i = i+1) pattern_table[i] = {8'h00, 8'h00, 8'h00, 8'h00};
+		pattern_table[192] = {8'h00, 8'h00, 8'h00, 8'h00};
+		pattern_table[193] = {8'h00, 8'h00, 8'h00, 8'h00};
+		pattern_table[194] = {8'h00, 8'h00, 8'h00, 8'h00};
+		pattern_table[195] = {8'h00, 8'h08, 8'h00, 8'h00};
+		pattern_table[196] = {8'h00, 8'h08, 8'h00, 8'h00};
+		pattern_table[197] = {8'h18, 8'h60, 8'h00, 8'h00};
+		pattern_table[198] = {8'h3C, 8'hF0, 8'h82, 8'h08};
+		pattern_table[199] = {8'h3C, 8'hF8, 8'h98, 8'h1C};
+		
+		pattern_table[200] = {8'h19, 8'hFC, 8'h3C, 8'h1C};
+		pattern_table[201] = {8'h01, 8'hFE, 8'h7E, 8'h08};
+		pattern_table[202] = {8'h03, 8'hFF, 8'hFF, 8'h80};
+		pattern_table[203] = {8'h0F, 8'hFF, 8'hFF, 8'hC0};
+		pattern_table[204] = {8'h1F, 8'hFF, 8'hFF, 8'hE0};
+		pattern_table[205] = {8'h1F, 8'hFF, 8'hFF, 8'hE0};
+		pattern_table[206] = {8'h0C, 8'hFF, 8'hFF, 8'hE0};
+		pattern_table[207] = {8'h22, 8'hFF, 8'hFF, 8'hC0};
+		
+		pattern_table[208] = {8'h01, 8'hFF, 8'hFF, 8'h90};
+		pattern_table[209] = {8'h00, 8'hFF, 8'hFF, 8'hC0};
+		pattern_table[210] = {8'h20, 8'hFF, 8'hFF, 8'hE0};
+		pattern_table[211] = {8'h71, 8'hFF, 8'hFF, 8'hF0};
+		pattern_table[212] = {8'h23, 8'hFF, 8'hFF, 8'hF0};
+		pattern_table[213] = {8'h0F, 8'hFF, 8'hFF, 8'hF0};
+		pattern_table[214] = {8'h1F, 8'hFF, 8'hFF, 8'hF0};
+		pattern_table[215] = {8'h0F, 8'hDF, 8'hFB, 8'hE0};
+		
+		pattern_table[216] = {8'h47, 8'h8F, 8'hF1, 8'hC0};
+		pattern_table[217] = {8'h03, 8'h07, 8'hE0, 8'h00};
+		pattern_table[218] = {8'h00, 8'h03, 8'hC0, 8'h00};
+		pattern_table[219] = {8'h00, 8'h00, 8'h00, 8'h00};
+		pattern_table[220] = {8'h00, 8'h00, 8'h00, 8'h00};
+		pattern_table[221] = {8'h00, 8'h00, 8'h00, 8'h00};
+		pattern_table[222] = {8'h00, 8'h00, 8'h00, 8'h00};
+		pattern_table[223] = {8'h00, 8'h00, 8'h00, 8'h00};
 
+
+		color_table[0] = {24'hffff00, 24'hff0000, 24'hffffff, 24'h000000};
+       		color_table[1] = {24'hffffff, 24'h000000, 24'h000000, 24'h000000};
+		color_table[2] = {24'hff00ff, 24'h00ff00, 24'h000000, 24'h000000};
+		color_table[3] = {24'hff00ff, 24'h00ff00, 24'h000000, 24'h000000};
+		color_table[4] = {24'hff00ff, 24'h00ff00, 24'h000000, 24'h000000};
+		color_table[5] = {24'hffffff, 24'h000000, 24'h000000, 24'h000000};
+		color_table[6] = {24'hff00ff, 24'hffff00, 24'h000000, 24'h000000};
+
+	
 	   end
 	
-	assign pattern_add = {name, vertical[3:0]}; // vcount at 4 to get 16 by 16 image
-	assign pixel_col = horizontal[4:1];
-	assign sprite_color = pixel_row[pixel_col] == 1 ? colors[47:24] : colors[23:0];
+	assign pattern_add = {name[7:0], vertical[4:0]};
+	assign pixel_col = horizontal[5:1]; // OG 5:1
+	assign before_col = pixel_col - 5'b00001;
+	assign after_col = pixel_col + 5'b00001;
 
 	always_comb begin
-		if (vcount >= sprite_att_table[0] && vcount < sprite_att_table[0] + 16 && hcount >= sprite_att_table[1] && hcount < sprite_att_table[1] + 31) begin 
-			horizontal = hcount - sprite_att_table[1];
-			vertical = (vcount - sprite_att_table[0]);
-			//vertical = (vcount - 48*vcount[8:3]) - sprite_att_table[0];
-			name = sprite_att_table[2];
-		end else begin
-			horizontal = hcount;
-			vertical = vcount;
-			name = sprite_att_table[4];
-		end
+		horizontal = hcount;
+		vertical = vcount;
+		name = sprite_att_table[28];
+
+		for (j = 0; j < 28; j = j+4) // Make this more dynamic
+			if (vcount >= sprite_att_table[j] && vcount < sprite_att_table[j] + 32 && hcount >= sprite_att_table[j+1] && hcount < sprite_att_table[j+1] + 64) begin
+				horizontal = hcount - sprite_att_table[j+1];
+				vertical = vcount - sprite_att_table[j];
+				name = sprite_att_table[j+2];
+			end 
 	end
-		
+	
 
 	always_ff @(posedge clk) begin
 		pixel_row <= pattern_table[pattern_add];
 		
 		colors <= color_table[name];
-		//for (i=0; i<sizeof(sprite_att_table); i = i+4) target_add <=
-		//{sprite_att_table[i], sprite_att_table[i+1]}
-	end	
-		
-	/*always_comb begin
-		if (vcount >= sprite_att_table[0] && vcount < sprite_att_table[0] + 16 && hcount >= sprite_att_table[1] && hcount < sprite_att_table[1] + 31) begin
-		       horizontal = hcount - sprite_att_table[1];	
-			vertical = vcount - sprite_att_table[0];
-			name = sprite_att_table[2];
+	end
 
-			//pattern_add = {name, vertical[3:0]};
 
-			//horizontal = hcount - sprite_att_table[1];
-			//pixel_col = horizontal[3:0];
-		end else begin
-			//pattern_add = {sprite_att_table[4], vcount[3:0]};
-			horizontal = hcount;
-			vertical = vcount;
-			name = sprite_att_table[4];
-			//pattern_add = {name, vertical[3:0]};
-			//pixel_col = hcount[4:1];
-		end
-	end*/
+	always_comb begin
+		case ({pixel_row[before_col], pixel_row[pixel_col], pixel_row[after_col]})
+			3'b010: sprite_color = colors[95:72];
+			3'b011: sprite_color = colors[95:72];
+			3'b110: sprite_color = colors[95:72];
+			3'b111: sprite_color = colors[71:48];
+		default: sprite_color = colors[23:0];
+	endcase
+	end
+
+
 
 
 
