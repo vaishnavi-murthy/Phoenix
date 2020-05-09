@@ -569,11 +569,22 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
 	assign is_sprite = name == sprite_att_table[28] ? 2'b00 : 2'b01;
 
         always_comb begin
+                horizontal = hcount;
+                vertical = vcount;
+                name = sprite_att_table[28];
 
                 if (sprite_change[0] == 1'b1) begin
                   sprite_att_table[(sprite_name << 2)] = {8'b0, new_y};
                   sprite_att_table[(sprite_name << 2) + 1'b1] = {8'b0, new_x};
+                  horizontal = hcount - sprite_att_table[(sprite_name << 2) + 1'b1];
+                  vertical = vcount - sprite_att_table[(sprite_name << 2)];
+                  name = sprite_att_table[(sprite_name << 2)+ 2'b10];
                 end
+		
+/*
+		horizontal = hcount - sprite_att_table[j+1];
+                vertical = vcount - sprite_att_table[j];
+                                name = sprite_att_table[j+2];
 
 		horizontal = hcount;
 		vertical = vcount;
@@ -585,6 +596,7 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
 				vertical = vcount - sprite_att_table[j];
 				name = sprite_att_table[j+2];
 			end 
+*/
         end
 
 
