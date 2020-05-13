@@ -572,7 +572,7 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
                 horizontal = hcount;
                 vertical = vcount;
                 name = sprite_att_table[28];
-
+/*
                 if (sprite_change[0] == 1'b1) begin
                   sprite_att_table[(sprite_name << 2)] = {8'b0, new_y};
                   sprite_att_table[(sprite_name << 2) + 1'b1] = {8'b0, new_x};
@@ -581,7 +581,7 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
                   name = sprite_att_table[(sprite_name << 2)+ 2'b10];
                 end
 		
-/*
+
 		horizontal = hcount - sprite_att_table[j+1];
                 vertical = vcount - sprite_att_table[j];
                                 name = sprite_att_table[j+2];
@@ -589,18 +589,22 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
 		horizontal = hcount;
 		vertical = vcount;
 		name = sprite_att_table[28];
-
+*/
 		for (j = 0; j < 28; j = j+4) // Make this more dynamic
 			if (vcount >= sprite_att_table[j] && vcount < sprite_att_table[j] + 32 && hcount >= sprite_att_table[j+1] && hcount < sprite_att_table[j+1] + 64) begin
 				horizontal = hcount - sprite_att_table[j+1];
 				vertical = vcount - sprite_att_table[j];
 				name = sprite_att_table[j+2];
 			end 
-*/
         end
 
 
         always_ff @(posedge clk) begin
+		if (sprite_change[0] == 1'b1) begin
+                  sprite_att_table[(sprite_name << 2)] = {8'b0, new_y};
+                  sprite_att_table[(sprite_name << 2) + 1'b1] = {8'b0, new_x};
+                end
+
                 pixel_row <= pattern_table[pattern_add];
 
                 colors <= color_table[name];
