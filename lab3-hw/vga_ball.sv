@@ -26,6 +26,7 @@ module vga_ball(input logic        clk,
    logic [7:0]    new_y;
    logic [7:0]    new_x;
    logic [7:0]    sprite_change;
+   logic [1:0]     is_sprite;
 
    vga_counters counters(.clk50(clk), .*);
 
@@ -36,7 +37,7 @@ module vga_ball(input logic        clk,
       {VGA_R, VGA_G, VGA_B} = {8'hff, 8'hff, 8'hff};
       if (VGA_BLANK_n )
               //{VGA_R, VGA_G, VGA_B} = {sprite_color[23:16], sprite_color[15:8], sprite_color[7:0]};
-              if (sprite_color)
+              if (is_sprite == 2'b01)
                       {VGA_R, VGA_G, VGA_B} = {sprite_color[23:16], sprite_color[15:8], sprite_color[7:0]};
               else
                       {VGA_R, VGA_G, VGA_B} = {final_color[23:16], final_color[15:8], final_color[7:0]};
@@ -350,7 +351,7 @@ module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, inpu
 
 endmodule
 
-module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, input logic clk, input logic [7:0] sprite_change, input logic [7:0] sprite_name, input logic [7:0] new_x, input logic [7:0] new_y, output logic [23:0] sprite_color);
+module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, input logic clk, input logic [7:0] sprite_change, input logic [7:0] sprite_name, input logic [7:0] new_x, input logic [7:0] new_y, output logic [23:0] sprite_color, output logic [1:0] is_sprite);
 
 	logic [15:0] sprite_att_table [28:0];
 	logic [31:0] pattern_table [2047:0];
@@ -565,14 +566,25 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
 	assign pixel_col = horizontal[5:1]; // OG 5:1
 	assign before_col = pixel_col - 5'b00001;
 	assign after_col = pixel_col + 5'b00001;
-
+	assign is_sprite = name == sprite_att_table[28] ? 2'b00 : 2'b01;
 
         always_comb begin
+                horizontal = hcount;
+                vertical = vcount;
+                name = sprite_att_table[28];
 
                 if (sprite_change[0] == 1'b1) begin
                   sprite_att_table[(sprite_name << 2)] = {8'b0, new_y};
                   sprite_att_table[(sprite_name << 2) + 1'b1] = {8'b0, new_x};
+                  horizontal = hcount - sprite_att_table[(sprite_name << 2) + 1'b1];
+                  vertical = vcount - sprite_att_table[(sprite_name << 2)];
+                  name = sprite_att_table[(sprite_name << 2)+ 2'b10];
                 end
+		
+/*
+		horizontal = hcount - sprite_att_table[j+1];
+                vertical = vcount - sprite_att_table[j];
+                                name = sprite_att_table[j+2];
 
 		horizontal = hcount;
 		vertical = vcount;
@@ -584,6 +596,7 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
 				vertical = vcount - sprite_att_table[j];
 				name = sprite_att_table[j+2];
 			end 
+*/
         end
 
 
