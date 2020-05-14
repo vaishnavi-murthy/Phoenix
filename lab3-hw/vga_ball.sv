@@ -23,10 +23,8 @@ module vga_ball(input logic        clk,
    logic [23:0]    sprite_color;
 
    logic [7:0]    sprite_name;
-   logic [7:0]    new_y_row1;
-   logic [7:0]    new_y_row2;
-   logic [7:0]    new_x_column1;
-   logic [7:0]    new_x_column2;
+   logic [7:0]    new_y;
+   logic [7:0]    new_x;
    logic [7:0]    sprite_change;
    logic [7:0]    new_name;
    logic [7:0]    new_tag;
@@ -35,7 +33,7 @@ module vga_ball(input logic        clk,
    vga_counters counters(.clk50(clk), .*);
 
    tile_generator tiles(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .*);
-   sprite_generator sprites(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .sprite_change(sprite_change), .sprite_name(sprite_name), .new_x_column1(new_x_column1), .new_x_column2(new_x_column2), .new_y_row1(new_y_row1), .new_y_row2(new_y_row2), .new_name(new_name), .new_tag(new_tag), .*);
+   sprite_generator sprites(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .sprite_change(sprite_change), .sprite_name(sprite_name), .new_y(new_y), .new_x(new_x), .new_name(new_name), .new_tag(new_tag), .*);
 
    always_comb begin
       {VGA_R, VGA_G, VGA_B} = {8'hff, 8'hff, 8'hff};
@@ -59,22 +57,18 @@ module vga_ball(input logic        clk,
      if (reset) begin
         sprite_change <= 8'b0;
         sprite_name <= 8'b0;
-        new_x_column1 <= 8'b0;
-	new_x_column2 <= 8'b0;
-        new_y_row1 <= 8'b0;
-	new_y_row2 <= 8'b0;
+        new_x <= 8'b0;
+        new_y <= 8'b0;
 	new_name <= 8'b0;
 	new_tag <= 8'b0;
      end else if (chipselect && write)
        case (address)
 	 3'h0 : sprite_change <= writedata;
 	 3'h1 : sprite_name <= writedata;
-	 3'h2 : new_x_column1 <= writedata;
-	 3'h3 : new_x_column2 <= writedata;
-	 3'h4 : new_y_row1 <= writedata;
-	 3'h5 : new_y_row2 <= writedata;
-	 3'h6 : new_name <= writedata;
-         3'h7 : new_tag <= writedata;
+	 3'h2 : new_x <= writedata;
+	 3'h3 : new_y <= writedata;
+	 3'h4 : new_name <= writedata;
+         3'h5 : new_tag <= writedata;
        endcase
 
 
@@ -363,7 +357,7 @@ module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, inpu
 
 endmodule
 
-module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, input logic clk, input logic [7:0] sprite_change, input logic [7:0] sprite_name, input logic [7:0] new_x_column1, input logic [7:0] new_x_column2, input logic [7:0] new_y_row1, input logic [7:0] new_y_row2, input logic [7:0] new_name, input logic [7:0] new_tag, output logic [23:0] sprite_color, output logic [1:0] is_sprite);
+module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, input logic clk, input logic [7:0] sprite_change, input logic [7:0] sprite_name, input logic [7:0] new_y, input logic [7:0] new_x, input logic [7:0] new_name, input logic [7:0] new_tag, output logic [23:0] sprite_color, output logic [1:0] is_sprite);
 
 	logic [15:0] sprite_att_table [32:0];
 	logic [31:0] pattern_table [2047:0];
@@ -599,8 +593,8 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
 
         always_ff @(posedge clk) begin
 		if (sprite_change[0] == 1'b1) begin
-                  sprite_att_table[(sprite_name << 2)] = {new_y_row1, new_y_row2};
-                  sprite_att_table[(sprite_name << 2) + 1'b1] = {new_x_column1, new_x_column2};
+                  sprite_att_table[(sprite_name << 2)] = {7'b0, new_y[7:0], 1'b0};
+                  sprite_att_table[(sprite_name << 2) + 1'b1] = {5'b0, new_x[7:0], 3'b0};
 		  sprite_att_table[(sprite_name << 2) + 2'b10] = {8'b0, new_name};
 		  sprite_att_table[(sprite_name << 2) + 2'b11] = {8'b0, new_tag};
                 end
