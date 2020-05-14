@@ -5,11 +5,11 @@
 
 
 typedef struct {
-	unsigned char sprite_change, sprite_num, new_x, new_y, new_name, new_tag;
+	unsigned char sprite_change, sprite_num, new_x_column1, new_x_column2, new_y_row1, new_y_row2, new_name, new_tag;
 } sprite_change_t;
   
 typedef struct {
-	unsigned char x, y;
+	unsigned char x_column1, x_column2, y_row1, y_row2;
 } coordinates_t;
 
 typedef struct {
