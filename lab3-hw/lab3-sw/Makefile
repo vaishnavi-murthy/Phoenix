@@ -1,30 +1,13 @@
-ifneq (${KERNELRELEASE},)
+CFLAGS = -Wall
 
-# KERNELRELEASE defined: we are being compiled as part of the Kernel
-        obj-m := vga_ball.o
+OBJECTS = hello.o usbkeyboard.o
 
-else
+hello : $(OBJECTS)
+	cc $(CFLAGS) -o hello $(OBJECTS) -lusb-1.0
 
-# We are being compiled as a module: use the Kernel build system
+hello.o: hello.c vga_ball.h usbkeyboard.h
+usbkeyboard.o: usbkeyboard.c usbkeyboard.h
 
-	KERNEL_SOURCE := /usr/src/linux-headers-$(shell uname -r)
-        PWD := $(shell pwd)
-
-default: module hello
-
-module:
-	${MAKE} -C ${KERNEL_SOURCE} SUBDIRS=${PWD} modules
-
-clean:
-	${MAKE} -C ${KERNEL_SOURCE} SUBDIRS=${PWD} clean
-	${RM} hello
-
-TARFILES = Makefile README vga_ball.h vga_ball.c hello.c
-TARFILE = lab3-sw.tar.gz
-.PHONY : tar
-tar : $(TARFILE)
-
-$(TARFILE) : $(TARFILES)
-	tar zcfC $(TARFILE) .. $(TARFILES:%=lab3-sw/%)
-
-endif 
+.PHONY : clean
+clean :
+	rm -rf *.o hello
