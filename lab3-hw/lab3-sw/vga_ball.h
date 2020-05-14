@@ -13,13 +13,23 @@ typedef struct {
 } coordinates_t;
 
 typedef struct {
+	unsigned short score1;
+
+}hardware_p;
+
+typedef struct {
   sprite_change_t sprite_args;
+  hardware_p alldata;
 } vga_ball_arg_t;
+
+
 
 #define VGA_BALL_MAGIC 'q'
 
 /* ioctls and their arguments */
 #define VGA_BALL_WRITE_BACKGROUND _IOW(VGA_BALL_MAGIC, 1, vga_ball_arg_t *)
 #define VGA_BALL_READ_BACKGROUND  _IOR(VGA_BALL_MAGIC, 2, vga_ball_arg_t *)
+#define VGA_BALL_WRITE_ALLDATA  _IOW(VGA_BALL_MAGIC, 3, vga_ball_arg_t *)
+
 
 #endif

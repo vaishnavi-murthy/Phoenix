@@ -42,6 +42,8 @@
 #define NEW_Y(x) ((x)+3)
 #define NEW_NAME(x) ((x)+4)
 #define NEW_TAG(x) ((x)+5)
+#define SCORE1(x) ((x)+6)
+
 
 /*
  * Information about our device
@@ -49,7 +51,8 @@
 struct vga_ball_dev {
 	struct resource res; /* Resource: our registers */
 	void __iomem *virtbase; /* Where registers can be accessed in memory */
-	sprite_change_t sprite_args;	
+	sprite_change_t sprite_args;
+	hardware_p alldata;	
 } dev;
 
 /*
@@ -65,6 +68,12 @@ static void write_background(sprite_change_t *sprite_args)
 	iowrite8(sprite_args->new_name, NEW_NAME(dev.virtbase) );
 	iowrite8(sprite_args->new_tag, NEW_TAG(dev.virtbase) );
 	dev.sprite_args = *sprite_args;
+}
+
+static void write_alldata(hardware_p *alldata){
+	iowrite8(alldata->score1, SCORE1(dev.virtbase));
+	dev.alldata = *alldata;
+
 }
 
 /*
@@ -90,6 +99,12 @@ static long vga_ball_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 				 sizeof(vga_ball_arg_t)))
 			return -EACCES;
 		break;
+	case VGA_BALL_WRITE_ALLDATA:
+                if (copy_from_user(&vla, (vga_ball_arg_t *) arg,
+                                   sizeof(vga_ball_arg_t)))
+                        return -EACCES;
+                write_alldata(&vla.alldata);
+                break;
 
 	default:
 		return -EINVAL;
@@ -118,6 +133,7 @@ static struct miscdevice vga_ball_misc_device = {
 static int __init vga_ball_probe(struct platform_device *pdev)
 {
         sprite_change_t initial_args = {0,0,0,0,0,0};
+	hardware_p initial_data = {0};
 	int ret;
 
 	/* Register ourselves as a misc device: creates /dev/vga_ball */
@@ -146,6 +162,7 @@ static int __init vga_ball_probe(struct platform_device *pdev)
         
 	/* Set an initial color */
         write_background(&initial_args);
+	write_alldata(&initial_data);
 
 	return 0;
 

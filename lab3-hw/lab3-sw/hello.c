@@ -34,7 +34,7 @@
 #define BIRD_LEFT_NAME 3
 
 #define TOP_ROW 16
-#define LAST_COLUMN 112
+#define LAST_COLUMN 150
 #define DISPLAY 1
 #define DONT_DISPLAY 0
 #define ROW_BIRD 40
@@ -46,6 +46,9 @@ int ship_lives = 2;
 int bird1_lives = 1;
 int bird2_lives = 1;
 int bird3_lives = 1;
+unsigned short score = 0;
+hardware_p data;
+
 
 struct libusb_device_handle *keyboard;
 uint8_t endpoint_address;
@@ -103,6 +106,18 @@ void set_new_args(const sprite_change_t *c)
   }
 }
 
+void set_alldata(const hardware_p *c)
+{
+  vga_ball_arg_t vla;
+  vla.alldata = *c;
+  
+  if( ioctl(vga_ball_fd, VGA_BALL_WRITE_ALLDATA, &vla))
+  {
+        perror("ioctl(VGA_BALL_SET_ALLDATA) failed");
+        return;
+  }
+}
+
 /* translate the joystick input into moves */
 int input_moves(char *ks) {
 	int move;
@@ -119,7 +134,7 @@ int input_moves(char *ks) {
 
 void move_ship_left()
 {
-	ship_coor.x -= 1;
+	if(ship_coor.x > 0) ship_coor.x -= 1;
 	ship.new_x = ship_coor.x;
 
 	set_new_args(&ship);
@@ -128,7 +143,8 @@ void move_ship_left()
 
 void move_ship_right()
 {
-	ship_coor.x += 1;
+	if(ship_coor.x > LAST_COLUMN-5) ship_coor.x += 0;
+	else ship_coor.x+=1;
         ship.new_x = ship_coor.x;
 
         set_new_args(&ship);
@@ -154,6 +170,7 @@ void *ship_shoot_bullet()
         ship_bullet.new_x = ship_coor.x;
         ship_bullet.new_y = ship_coor.y - 8;
         set_new_args(&ship_bullet);
+	
 
         while((ship_bullet.new_y) > TOP_ROW)
         {
@@ -168,6 +185,11 @@ void *ship_shoot_bullet()
 					usleep(TIME_CONSTANT*2);
 					bird1.new_tag = DONT_DISPLAY;
 					set_new_args(&bird1);
+					bird1_lives--;
+					score++;
+					data.score1 = score;
+					set_alldata(&data);
+
                                 }
                                 else
                                         bird1_lives--;
@@ -178,6 +200,9 @@ void *ship_shoot_bullet()
 					bird1.new_name = prev_name;
                                         set_new_args(&bird1);
                                         
+					score++;
+                                        data.score1 = score;
+                                        set_alldata(&data);
                                 ship_bullet.new_tag = DONT_DISPLAY;
                                 set_new_args(&ship_bullet);
                                 break;
@@ -190,6 +215,10 @@ void *ship_shoot_bullet()
 					usleep(TIME_CONSTANT*2);
 					bird2.new_tag = DONT_DISPLAY;
                                         set_new_args(&bird2);
+					bird2_lives--;
+					score++;
+                                        data.score1 = score;
+                                        set_alldata(&data);
                                 }
                                 else
                                         bird2_lives--;
@@ -199,6 +228,10 @@ void *ship_shoot_bullet()
                                         usleep(TIME_CONSTANT/2);
                                         bird1.new_name = prev_name;
                                         set_new_args(&bird2);
+
+					score++;
+                                        data.score1 = score;
+                                        set_alldata(&data);
                                 ship_bullet.new_tag = DONT_DISPLAY;
                                 set_new_args(&ship_bullet);
                                 break;
@@ -211,6 +244,10 @@ void *ship_shoot_bullet()
 					usleep(TIME_CONSTANT*2);
 					bird3.new_tag = DONT_DISPLAY;
                                         set_new_args(&bird3);
+					bird3_lives--;
+					score++;
+                                        data.score1 = score;
+                                        set_alldata(&data);
                                 }
                                 else
                                         bird3_lives--;
@@ -220,6 +257,10 @@ void *ship_shoot_bullet()
                                         usleep(TIME_CONSTANT/2);
                                         bird3.new_name = prev_name;
                                         set_new_args(&bird3);
+
+					score++;
+                                        data.score1 = score;
+                                        set_alldata(&data);
                                 ship_bullet.new_tag = DONT_DISPLAY;
                                 set_new_args(&ship_bullet);
                                 break;
@@ -287,6 +328,7 @@ void *bird1_shoot_bullet()
 					usleep(TIME_CONSTANT*2);
                                         ship.new_tag = DONT_DISPLAY;
                                         set_new_args(&ship);
+					ship_lives--;
 				}
 				else
 					ship_lives--;
@@ -329,6 +371,7 @@ void *bird2_shoot_bullet()
 					usleep(TIME_CONSTANT*2);
                                         ship.new_tag = DONT_DISPLAY;
                                         set_new_args(&ship);
+					ship_lives--;
                                 }
                                 else
                                         ship_lives--;
@@ -371,6 +414,7 @@ void *bird3_shoot_bullet()
 					usleep(TIME_CONSTANT*2);
                                         ship.new_tag = DONT_DISPLAY;
                                         set_new_args(&ship);
+					ship_lives--;
                                 }
                                 else
                                         ship_lives--;
@@ -482,6 +526,9 @@ int main()
   char keystate[15];
   int m;
   static const char filename[] = "/dev/vga_ball";
+  score = 0;
+  data.score1=score;
+  set_alldata(&data);
 
 
   printf("VGA ball Userspace program started\n");
@@ -529,9 +576,46 @@ int main()
                                         pthread_create(&ship_thread_shoot, NULL, ship_shoot_bullet, NULL);
                                 break;
 		}
+
+  		if(bird1_lives < 0 && bird2_lives < 0 && bird3_lives < 0){
+			printf("You won!");
+			exit(1);
+		}
+		if(ship_lives <0){
+			printf("You lost");
+			exit(1);
+		}
+
 	}
+	
+	/*if(bird1_lives == 0)
+                score1=1;
+        else if(bird1_lives ==-1)
+                score1=2;
+
+        if(bird2_lives == 0)
+                score2=1;
+        else if(bird2_lives == -1)
+                score2=2;
+
+        if(bird3_lives == 0)
+                score3=1;
+        else if(bird3_lives == -1)
+                score3=2;
+
+        score=score1+score2+score3;
+	printf("%d\n",score);        
+        data.score1 = score;
+        set_alldata(&data);*/
+
+	
+
+
   }
 
+	
+
+  
   pthread_join(move_birds_thread, NULL);
 
   printf("User Program Terminated\n");
