@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include "vga_ball.h"
+#include "usbkeyboard.h"
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -15,9 +16,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <math.h>
+#include <stdlib.h>
 
 int vga_ball_fd;
 struct libusb_device_handle *keyboard;
+uint8_t endpoint_address;
 
 
 /* Translate the joystick input into moves */
