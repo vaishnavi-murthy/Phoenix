@@ -17,6 +17,22 @@
 #include <math.h>
 
 int vga_ball_fd;
+struct libusb_device_handle *keyboard;
+
+
+/* Translate the joystick input into moves */
+int input_moves(const char *ks) {
+	int move;
+
+	if (ks[6] == 'f' && ks[12] == '1') move = 2;  // Moving left and button is pressed
+	else if (ks[6] == 'f' && ks[12] == '0') move = 1;
+	else if (ks[6] == '0' && ks[12] == '1') move = 0;
+	else if (ks[6] == '0' && ks[12] == '0') move = -1;
+	else if (ks[6] == '7' && ks[12] == '1') move = 3;  // Just button is pressed
+	else move = -2;
+
+        return move;
+}
 
 /* Read and print the coordinates */
 void print_coordinates() {
@@ -46,9 +62,28 @@ int main()
   vga_ball_arg_t vla;
   int i;
   static const char filename[] = "/dev/vga_ball";
+  
+  struct usb_keyboard_packet packet;
+  int transferred;
+  char keystate[15];
+  int m;
 
-
-  printf("VGA ball Userspace program started\n");
+  printf ("VGA Ball Userspace program started\n");
+  
+  /* Open the Joystick */
+  if ( (keyboard = openkeyboard(&endpoint_address)) == NULL) {
+	  fprintf(stderr, "Did not find a keyboard\n");
+	  exit(1);
+  }
+  
+  for (;;) {  // Expand for loop to end when the number of lives is done or game ends??
+	  libusb_interrupt_transfer(keyboard, endpoint_address, (unsigned char *) &packet, sizeof(packet), &transferred, 0);
+	  if (transferred == sizeof(packet)) {
+		  sprintf(keystate, "%02x %02x %02x %02x %02x", packet.modifiers, packet.keycode[0], packet.keycode[1], packet.keycode[2], packet.keycode[3]);
+		  //m = input_moves(keystate)
+		  printf("%s\n", keystate);  // Check if this if block is working now that theres no server part
+	  }
+  }
 
 
   if ( (vga_ball_fd = open(filename, O_RDWR)) == -1) {
