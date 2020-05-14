@@ -3,13 +3,17 @@
 
 #include <linux/ioctl.h>
 
-typedef struct {
-	unsigned char sprite_change, sprite_name, new_x, new_y;
-} vga_ball_color_t;
-  
 
 typedef struct {
-  vga_ball_color_t background;
+	unsigned char sprite_change, sprite_num, new_x, new_y, new_name, new_tag;
+} sprite_change_t;
+  
+typedef struct {
+	unsigned char x, y;
+} coordinates_t;
+
+typedef struct {
+  sprite_change_t sprite_args;
 } vga_ball_arg_t;
 
 #define VGA_BALL_MAGIC 'q'

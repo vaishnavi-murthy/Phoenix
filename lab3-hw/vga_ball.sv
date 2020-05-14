@@ -26,12 +26,14 @@ module vga_ball(input logic        clk,
    logic [7:0]    new_y;
    logic [7:0]    new_x;
    logic [7:0]    sprite_change;
+   logic [7:0]    new_name;
+   logic [7:0]    new_tag;
    logic [1:0]     is_sprite;
 
    vga_counters counters(.clk50(clk), .*);
 
    tile_generator tiles(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .*);
-   sprite_generator sprites(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .sprite_change(sprite_change), .sprite_name(sprite_name), .new_x(new_x), .new_y(new_y), .*);
+   sprite_generator sprites(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .sprite_change(sprite_change), .sprite_name(sprite_name), .new_x(new_x), .new_y(new_y), .new_name(new_name), .new_tag(new_tag), .*);
 
    always_comb begin
       {VGA_R, VGA_G, VGA_B} = {8'hff, 8'hff, 8'hff};
@@ -54,15 +56,19 @@ module vga_ball(input logic        clk,
    always_ff @(posedge clk)
      if (reset) begin
         sprite_change <= 8'b0;
-        sprite_name <= 8'h0;
-        new_x <= 8'h0;
-        new_y <= 8'h0;
+        sprite_name <= 8'b0;
+        new_x <= 8'b0;
+        new_y <= 8'b0;
+	new_name <= 8'b0;
+	new_tag <= 8'b0;
      end else if (chipselect && write)
        case (address)
-	 5'h0 : sprite_change <= writedata;
-	 5'h1 : sprite_name <= writedata;
-	 5'h2 : new_x <= writedata;
-         5'h3 : new_y <= writedata;
+	 3'h0 : sprite_change <= writedata;
+	 3'h1 : sprite_name <= writedata;
+	 3'h2 : new_x <= writedata;
+         3'h3 : new_y <= writedata;
+	 3'h4 : new_name <= writedata;
+         3'h5 : new_tag <= writedata;
        endcase
 
 
@@ -351,9 +357,9 @@ module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, inpu
 
 endmodule
 
-module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, input logic clk, input logic [7:0] sprite_change, input logic [7:0] sprite_name, input logic [7:0] new_x, input logic [7:0] new_y, output logic [23:0] sprite_color, output logic [1:0] is_sprite);
+module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, input logic clk, input logic [7:0] sprite_change, input logic [7:0] sprite_name, input logic [7:0] new_x, input logic [7:0] new_y, input logic [7:0] new_name, input logic [7:0] new_tag, output logic [23:0] sprite_color, output logic [1:0] is_sprite);
 
-	logic [15:0] sprite_att_table [28:0];
+	logic [15:0] sprite_att_table [32:0];
 	logic [31:0] pattern_table [2047:0];
 	logic [95:0] color_table [6:0];
 
@@ -383,33 +389,37 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
 		sprite_att_table[6] = 1;
 		sprite_att_table[7] = 1;
 
-		sprite_att_table[8] = 200; // Bird
+		sprite_att_table[8] = 200; // Bird 1
 		sprite_att_table[9] = 200;
 		sprite_att_table[10] = 2;
 		sprite_att_table[11] = 1;
 
-		sprite_att_table[12] = 200; // Bird flying left 
+		sprite_att_table[12] = 200; // Bird 2
 		sprite_att_table[13] = 250;
-		sprite_att_table[14] = 3;
+		sprite_att_table[14] = 2;
 		sprite_att_table[15] = 1;
 
-		sprite_att_table[16] = 200; // Bird flying right
+		sprite_att_table[16] = 200; // Bird 3
 		sprite_att_table[17] = 150;
-		sprite_att_table[18] = 4;
+		sprite_att_table[18] = 2;
 		sprite_att_table[19] = 1;
 
-		sprite_att_table[20] = 225; // bird bullet
+		sprite_att_table[20] = 225; // bird bullet 1
 		sprite_att_table[21] = 200;
 		sprite_att_table[22] = 5;
 		sprite_att_table[23] = 1;
 
-		sprite_att_table[24] = 200; // Explosion graphic
+		sprite_att_table[24] = 200; // bird bullet 2
 		sprite_att_table[25] = 650;
-		sprite_att_table[26] = 6;
+		sprite_att_table[26] = 5;
 		sprite_att_table[27] = 1;
+		
+		sprite_att_table[28] = 225; // bird bullet 3
+		sprite_att_table[29] = 650;
+		sprite_att_table[30] = 5;
+		sprite_att_table[31] = 1;
 
-
-		sprite_att_table[28] = 9; // blank name
+		sprite_att_table[32] = 9; // blank name
 
 		pattern_table[0] = {8'h00, 8'h00, 8'h00, 8'h00};
 		pattern_table[1] = {8'h00, 8'h00, 8'h00, 8'h00};
@@ -566,32 +576,14 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
 	assign pixel_col = horizontal[5:1]; // OG 5:1
 	assign before_col = pixel_col - 5'b00001;
 	assign after_col = pixel_col + 5'b00001;
-	assign is_sprite = name == sprite_att_table[28] ? 2'b00 : 2'b01;
+	assign is_sprite = name == sprite_att_table[32] ? 2'b00 : 2'b01;
 
         always_comb begin
                 horizontal = hcount;
                 vertical = vcount;
-                name = sprite_att_table[28];
-/*
-                if (sprite_change[0] == 1'b1) begin
-                  sprite_att_table[(sprite_name << 2)] = {8'b0, new_y};
-                  sprite_att_table[(sprite_name << 2) + 1'b1] = {8'b0, new_x};
-                  horizontal = hcount - sprite_att_table[(sprite_name << 2) + 1'b1];
-                  vertical = vcount - sprite_att_table[(sprite_name << 2)];
-                  name = sprite_att_table[(sprite_name << 2)+ 2'b10];
-                end
-		
-
-		horizontal = hcount - sprite_att_table[j+1];
-                vertical = vcount - sprite_att_table[j];
-                                name = sprite_att_table[j+2];
-
-		horizontal = hcount;
-		vertical = vcount;
-		name = sprite_att_table[28];
-*/
-		for (j = 0; j < 28; j = j+4) // Make this more dynamic
-			if (vcount >= sprite_att_table[j] && vcount < sprite_att_table[j] + 32 && hcount >= sprite_att_table[j+1] && hcount < sprite_att_table[j+1] + 64) begin
+                name = sprite_att_table[32];
+		for (j = 0; j < 32; j = j+4) // Make this more dynamic
+			if (vcount >= sprite_att_table[j] && vcount < sprite_att_table[j] + 32 && hcount >= sprite_att_table[j+1] && hcount < sprite_att_table[j+1] + 64 && sprite_att_table[j+3] == 1) begin
 				horizontal = hcount - sprite_att_table[j+1];
 				vertical = vcount - sprite_att_table[j];
 				name = sprite_att_table[j+2];
@@ -603,6 +595,8 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
 		if (sprite_change[0] == 1'b1) begin
                   sprite_att_table[(sprite_name << 2)] = {8'b0, new_y};
                   sprite_att_table[(sprite_name << 2) + 1'b1] = {8'b0, new_x};
+		  sprite_att_table[(sprite_name << 2) + 2'b10] = {8'b0, new_name};
+		  sprite_att_table[(sprite_name << 2) + 2'b11] = {8'b0, new_tag};
                 end
 
                 pixel_row <= pattern_table[pattern_add];
