@@ -40,6 +40,8 @@
 #define SPRITE_NAME(x) ((x)+1)
 #define NEW_X(x) ((x)+2)
 #define NEW_Y(x) ((x)+3)
+#define NEW_NAME(x) ((x)+4)
+#define NEW_TAG(x) ((x)+5)
 
 /*
  * Information about our device
@@ -47,20 +49,22 @@
 struct vga_ball_dev {
 	struct resource res; /* Resource: our registers */
 	void __iomem *virtbase; /* Where registers can be accessed in memory */
-        vga_ball_color_t background;
+	sprite_change_t sprite_args;	
 } dev;
 
 /*
  * Write segments of a single digit
  * Assumes digit is in range and the device information has been set up
  */
-static void write_background(vga_ball_color_t *background)
+static void write_background(sprite_change_t *sprite_args)
 {
-	iowrite8(background->sprite_change, SPRITE_CHANGE(dev.virtbase) );
-	iowrite8(background->sprite_name, SPRITE_NAME(dev.virtbase) );
-	iowrite8(background->new_x, NEW_X(dev.virtbase) );
-	iowrite8(background->new_y, NEW_Y(dev.virtbase) );
-	dev.background = *background;
+	iowrite8(sprite_args->sprite_change, SPRITE_CHANGE(dev.virtbase) );
+	iowrite8(sprite_args->sprite_num, SPRITE_NAME(dev.virtbase) );
+	iowrite8(sprite_args->new_x, NEW_X(dev.virtbase) );
+	iowrite8(sprite_args->new_y, NEW_Y(dev.virtbase) );
+	iowrite8(sprite_args->new_name, NEW_NAME(dev.virtbase) );
+	iowrite8(sprite_args->new_tag, NEW_TAG(dev.virtbase) );
+	dev.sprite_args = *sprite_args;
 }
 
 /*
@@ -77,11 +81,11 @@ static long vga_ball_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 		if (copy_from_user(&vla, (vga_ball_arg_t *) arg,
 				   sizeof(vga_ball_arg_t)))
 			return -EACCES;
-		write_background(&vla.background);
+		write_background(&vla.sprite_args);
 		break;
 
 	case VGA_BALL_READ_BACKGROUND:
-	  	vla.background = dev.background;
+	  	vla.sprite_args = dev.sprite_args;
 		if (copy_to_user((vga_ball_arg_t *) arg, &vla,
 				 sizeof(vga_ball_arg_t)))
 			return -EACCES;
@@ -113,7 +117,7 @@ static struct miscdevice vga_ball_misc_device = {
  */
 static int __init vga_ball_probe(struct platform_device *pdev)
 {
-        vga_ball_color_t beige = {0,0,0,0 };
+        sprite_change_t initial_args = {0,0,0,0,0,0};
 	int ret;
 
 	/* Register ourselves as a misc device: creates /dev/vga_ball */
@@ -141,7 +145,7 @@ static int __init vga_ball_probe(struct platform_device *pdev)
 	}
         
 	/* Set an initial color */
-        write_background(&beige);
+        write_background(&initial_args);
 
 	return 0;
 

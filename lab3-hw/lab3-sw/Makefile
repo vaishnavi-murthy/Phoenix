@@ -10,6 +10,16 @@ else
 	KERNEL_SOURCE := /usr/src/linux-headers-$(shell uname -r)
         PWD := $(shell pwd)
 
+CFLAGS = -Wall
+
+OBJECTS = hello.o usbkeyboard.o
+
+hello : $(OBJECTS)
+	cc $(CFLAGS) -pthread -o hello $(OBJECTS) -lusb-1.0
+
+hello.o: hello.c vga_ball.h usbkeyboard.h
+usbkeyboard.o: usbkeyboard.c usbkeyboard.h
+
 default: module hello
 
 module:

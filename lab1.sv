@@ -26,17 +26,19 @@ module lab1( input logic        CLOCK_50,
    logic [9:0]     vcount;
    logic [23:0]    final_color;
    logic [23:0]    sprite_color;
+   logic [1:0]     is_sprite;
 
 
    vga_counters counters(.clk50(clk), .*);
    tile_generator tiles(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .*); 
    sprite_generator sprites(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .*);
 
+   //assign {VGA_R, VGA_G, VGA_B} = is_sprite == 2'b10 ? {sprite_color[23:16], sprite_color[15:8], sprite_color[7:0]} : {final_color[23:16], final_color[15:8], final_color[7:0]};
    always_comb begin
       {VGA_R, VGA_G, VGA_B} = {8'hff, 8'hff, 8'hff};
       if (VGA_BLANK_N )
 	      //{VGA_R, VGA_G, VGA_B} = {sprite_color[23:16], sprite_color[15:8], sprite_color[7:0]};
-      	      if (sprite_color)
+      	      if (is_sprite == 2'b01)
 		      {VGA_R, VGA_G, VGA_B} = {sprite_color[23:16], sprite_color[15:8], sprite_color[7:0]};
 	      else
 	              {VGA_R, VGA_G, VGA_B} = {final_color[23:16], final_color[15:8], final_color[7:0]};
@@ -338,7 +340,7 @@ module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, inpu
 endmodule
 
 
-module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, input logic clk, output logic [23:0] sprite_color);
+module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, input logic clk, output logic [23:0] sprite_color, output logic [1:0] is_sprite );
 	
 	logic [15:0] sprite_att_table [28:0];
 	logic [31:0] pattern_table [2047:0];
@@ -554,6 +556,7 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
 	assign pixel_col = horizontal[5:1]; // OG 5:1
 	assign before_col = pixel_col - 5'b00001;
 	assign after_col = pixel_col + 5'b00001;
+	assign is_sprite = name == sprite_att_table[28] ? 2'b00 : 2'b01;
 
 	always_comb begin
 		horizontal = hcount;
@@ -565,7 +568,8 @@ module sprite_generator (input logic [10:0] hcount, input logic [9:0] vcount, in
 				horizontal = hcount - sprite_att_table[j+1];
 				vertical = vcount - sprite_att_table[j];
 				name = sprite_att_table[j+2];
-			end 
+			end
+	
 	end
 	
 
