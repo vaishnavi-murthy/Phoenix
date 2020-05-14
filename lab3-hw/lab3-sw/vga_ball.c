@@ -19,10 +19,10 @@
  */
 
 #include <linux/module.h>
+#include <linux/init.h>
 #include <linux/errno.h>
 #include <linux/version.h>
 #include <linux/kernel.h>
-#include <linux/init.h>
 #include <linux/platform_device.h>
 #include <linux/miscdevice.h>
 #include <linux/slab.h>
@@ -58,12 +58,12 @@ struct vga_ball_dev {
  */
 static void write_background(sprite_change_t *sprite_args)
 {
-	iowrite16(sprite_args->sprite_change, SPRITE_CHANGE(dev.virtbase) );
-	iowrite16(sprite_args->sprite_num, SPRITE_NAME(dev.virtbase) );
-	iowrite16(sprite_args->new_x, NEW_X(dev.virtbase) );
-	iowrite16(sprite_args->new_y, NEW_Y(dev.virtbase) );
-	iowrite16(sprite_args->new_name, NEW_NAME(dev.virtbase) );
-	iowrite16(sprite_args->new_tag, NEW_TAG(dev.virtbase) );
+	iowrite8(sprite_args->sprite_change, SPRITE_CHANGE(dev.virtbase) );
+	iowrite8(sprite_args->sprite_num, SPRITE_NAME(dev.virtbase) );
+	iowrite8(sprite_args->new_x, NEW_X(dev.virtbase) );
+	iowrite8(sprite_args->new_y, NEW_Y(dev.virtbase) );
+	iowrite8(sprite_args->new_name, NEW_NAME(dev.virtbase) );
+	iowrite8(sprite_args->new_tag, NEW_TAG(dev.virtbase) );
 	dev.sprite_args = *sprite_args;
 }
 
