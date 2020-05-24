@@ -10,7 +10,7 @@ module vga_ball(input logic        clk,
                 input logic [7:0]  writedata,
                 input logic        write,
                 input              chipselect,
-                input logic [4:0]  address,
+                input logic [2:0]  address,
 
                 output logic [7:0] VGA_R, VGA_G, VGA_B,
                 output logic       VGA_CLK, VGA_HS, VGA_VS,
@@ -29,31 +29,27 @@ module vga_ball(input logic        clk,
    logic [7:0]    new_name;
    logic [7:0]    new_tag;
    logic [1:0]     is_sprite;
+   logic [7:0]    score;
+   
 
    vga_counters counters(.clk50(clk), .*);
 
-   tile_generator tiles(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .*);
-   sprite_generator sprites(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .sprite_change(sprite_change), .sprite_name(sprite_name), .new_y(new_y), .new_x(new_x), .new_name(new_name), .new_tag(new_tag), .*);
+   tile_generator tiles(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .score(score), .final_color(final_color));
+      sprite_generator sprites(.hcount(hcount[10:0]), .vcount(vcount), .clk(clk), .sprite_change(sprite_change), .sprite_name(sprite_name), .new_y(new_y), .new_x(new_x), .new_name(new_name), .new_tag(new_tag), .*);
 
    always_comb begin
       {VGA_R, VGA_G, VGA_B} = {8'hff, 8'hff, 8'hff};
       if (VGA_BLANK_n )
-              //{VGA_R, VGA_G, VGA_B} = {sprite_color[23:16], sprite_color[15:8], sprite_color[7:0]};
+             
               if (is_sprite == 2'b01)
                       {VGA_R, VGA_G, VGA_B} = {sprite_color[23:16], sprite_color[15:8], sprite_color[7:0]};
               else
                       {VGA_R, VGA_G, VGA_B} = {final_color[23:16], final_color[15:8], final_color[7:0]};
 
-              //{VGA_R, VGA_G, VGA_B} = {8'hff, 8'hff, 8'h00};
-        //if (hcount[10:6] == 5'd3 &&
-            //vcount[9:5] == 5'd3)
-          //{VGA_R, VGA_G, VGA_B} = {8'hff, 8'hff, 8'hff};
-        //else
-          //{VGA_R, VGA_G, VGA_B} = {final_color[23:16], final_color[15:8], final_color[7:0]};
    end
 
 
-   always_ff @(posedge clk)
+    always_ff @(posedge clk)
      if (reset) begin
         sprite_change <= 8'b0;
         sprite_name <= 8'b0;
@@ -61,6 +57,7 @@ module vga_ball(input logic        clk,
         new_y <= 8'b0;
 	new_name <= 8'b0;
 	new_tag <= 8'b0;
+	score <= 8'h0;
      end else if (chipselect && write)
        case (address)
 	 3'h0 : sprite_change <= writedata;
@@ -69,6 +66,7 @@ module vga_ball(input logic        clk,
 	 3'h3 : new_y <= writedata;
 	 3'h4 : new_name <= writedata;
          3'h5 : new_tag <= writedata;
+	 3'h6 : score <=writedata;
        endcase
 
 
@@ -152,11 +150,11 @@ module vga_counters(
    
 endmodule
 
-module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, input logic clk, output logic [23:0] final_color);
+module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, input logic clk, input logic [7:0] score, output logic [23:0] final_color);
 
      logic [7:0] pattern_name_table [4799:0];
      logic [7:0] pattern_gen_table [2047:0];
-     logic [47:0] color_table [31:0];
+     logic [47:0] color_table [255:0];
 
      logic [13:0] base_add;
      logic [7:0] tile_name;
@@ -166,10 +164,143 @@ module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, inpu
      logic [47:0] pattern_colors;
      int i;
      int j;
+     int m;
+     int count =1;
+
 
      initial
         begin
-          for (i = 0; i < 4800; i = i+1) pattern_name_table[i] = 31;
+          for (i = 0; i < 4800; i = i+1) pattern_name_table[i] = 34;
+          for (i = 0; i < 2048; i = i+1) pattern_gen_table[i] = 8'h00;
+
+          pattern_name_table[35]= 24;
+	  pattern_name_table[4799]=24;
+          pattern_name_table[79]=24;
+          pattern_name_table[77]=24;
+	  pattern_name_table[4720]=24;
+          
+		
+	  // Star band formation
+          for (m = 0; m < 16; m = m+1) begin
+	  	
+		if (m%2 ==0) begin		
+	  		for (i = 8; i < 18; i = i +1) begin
+				count = 80 *i;
+          			for (j = m*5; j < m*5 +5 ; j = j +1) begin
+                    	     		if (count%2==0)
+		      	          		pattern_name_table[count+j]=24;
+	                     		else
+		       		  		pattern_name_table[count+j]=23;
+                		end
+	  		end
+			for (i = 28; i < 38; i = i +1) begin
+				count = 80 *i;
+          			for (j = m*5; j < m*5 +5 ; j = j +1) begin
+                    	     		if (count%2==0)
+		      	          		pattern_name_table[count+j]=24;
+	                     		else
+		       		  		pattern_name_table[count+j]=23;
+                		end
+	  		end
+
+			for (i = 48; i < 58; i = i +1) begin
+				count = 80 *i;
+          			for (j = m*5; j < m*5 +5 ; j = j +1) begin
+                    	     		if (count%2==0)
+		      	          		pattern_name_table[count+j]=24;
+	                     		else
+		       		  		pattern_name_table[count+j]=23;
+                		end
+	  		end
+		end
+
+		else begin
+			for (i = 9; i < 19; i = i +1) begin
+				count = 80 *i;
+          			for (j = m*5; j < m*5 +5 ; j = j +1) begin
+                    	     		if (count%2==0)
+		      	          		pattern_name_table[count+j]=24;
+	                     		else
+		       		  		pattern_name_table[count+j]=23;
+                		end
+	  		end
+			for (i = 29; i < 39; i = i +1) begin
+				count = 80 *i;
+          			for (j = m*5; j < m*5 +5 ; j = j +1) begin
+                    	     		if (count%2==0)
+		      	          		pattern_name_table[count+j]=24;
+	                     		else
+		       		  		pattern_name_table[count+j]=23;
+                		end
+	  		end
+			for (i = 49; i < 59; i = i +1) begin
+				count = 80 *i;
+          			for (j = m*5; j < m*5 +5 ; j = j +1) begin
+                    	     		if (count%2==0)
+		      	          		pattern_name_table[count+j]=24;
+	                     		else
+		       		  		pattern_name_table[count+j]=23;
+                		end
+	  		end
+
+		end
+          end
+
+	  
+          pattern_name_table[1764]=25;
+	  pattern_name_table[2470]=25;
+	  pattern_name_table[789]=25;
+	  pattern_name_table[1560]=25;
+	  pattern_name_table[353]=25;
+	  pattern_name_table[4589]=25;
+	  pattern_name_table[19]=25;
+	  pattern_name_table[3147]=25;
+          pattern_name_table[1273]=25;
+	  pattern_name_table[4591]=25;
+	  pattern_name_table[1485]=25;
+	  pattern_name_table[73]=25;
+	  pattern_name_table[1697]=25;
+	  pattern_name_table[1236]=25;
+	  pattern_name_table[2421]=25;
+	  pattern_name_table[630]=25;
+          pattern_name_table[3593]=25;
+	  pattern_name_table[3057]=25;
+	  pattern_name_table[2768]=25;
+	  pattern_name_table[3522]=25;
+	  pattern_name_table[1284]=25;
+	  pattern_name_table[1555]=25;
+	  pattern_name_table[2978]=25;
+	  pattern_name_table[1735]=25;
+          pattern_name_table[2190]=25;
+	  pattern_name_table[1910]=25;
+	  pattern_name_table[2008]=25;
+	  pattern_name_table[1400]=25;
+	  pattern_name_table[1300]=25;
+	  pattern_name_table[1200]=25;
+	  pattern_name_table[2100]=25;
+	  pattern_name_table[2250]=25;
+
+
+	  pattern_name_table[1100]=22;
+	  pattern_name_table[2025]=22;
+	  pattern_name_table[3025]=22;
+	  pattern_name_table[2525]=22;
+          pattern_name_table[2750]=22;
+	  pattern_name_table[3625]=22;
+	  pattern_name_table[3825]=22;
+	  pattern_name_table[3715]=22;
+	  pattern_name_table[1925]=22;
+          pattern_name_table[356]=22;
+	  pattern_name_table[512]=22;
+	  pattern_name_table[1054]=22;
+	  pattern_name_table[777]=22;
+	  pattern_name_table[320]=22;
+
+	  pattern_name_table[2800]=21;
+	  pattern_name_table[4067]=21;
+	  pattern_name_table[1009]=21;
+	  pattern_name_table[256]=21;
+	  pattern_name_table[156]=21;
 
           for (i = 12; i < 17; i = i+1) pattern_name_table[i] = i-1; // Score 1
           pattern_name_table[17] = 1;
@@ -192,7 +323,7 @@ module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, inpu
           //pattern_name_table[194] = 20;
           pattern_name_table[217] = 20; // Life ship for score 2
           pattern_name_table[218] = 3;
-          for (i = 0; i < 2048; i = i+1) pattern_gen_table[i] = 8'hff;
+          
           // Number 0
           pattern_gen_table[0] = 8'h08;
           pattern_gen_table[1] = 8'h14;
@@ -214,14 +345,14 @@ module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, inpu
           pattern_gen_table[8] = 8'h10;
 
           // Number 2
-          pattern_gen_table[16] = 8'h1E; //3c
-          pattern_gen_table[17] = 8'h42; //44
-          pattern_gen_table[18] = 8'h40; //40
-          pattern_gen_table[19] = 8'h20; //20
-          pattern_gen_table[20] = 8'h10; //10
-          pattern_gen_table[21] = 8'h08; //08
-          pattern_gen_table[22] = 8'h04; //04
-          pattern_gen_table[23] = 8'h1E; //4c
+          pattern_gen_table[23] = 8'h00; //3c
+          pattern_gen_table[22] = 8'h3E; //44
+          pattern_gen_table[21] = 8'h02; //40
+          pattern_gen_table[20] = 8'h02; //20
+          pattern_gen_table[19] = 8'h3E; //10
+          pattern_gen_table[18] = 8'h20; //08
+          pattern_gen_table[17] = 8'h20; //04
+          pattern_gen_table[16] = 8'h3E; //4c
 
 
           // Number 3
@@ -234,15 +365,65 @@ module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, inpu
           pattern_gen_table[25] = 8'h40; //20
           pattern_gen_table[24] = 8'h3E;
 
+	  // Number 4
+          pattern_gen_table[215] = 8'h20;
+          pattern_gen_table[214] = 8'h20; //20
+          pattern_gen_table[213] = 8'h20; //10
+          pattern_gen_table[212] = 8'h20; //08
+          pattern_gen_table[211] = 8'h7E; //10
+          pattern_gen_table[210] = 8'h22; //20
+          pattern_gen_table[209] = 8'h22; //20
+          pattern_gen_table[208] = 8'h22;
+
+	  // Number 5
+          pattern_gen_table[223] = 8'h00;
+          pattern_gen_table[222] = 8'h3E; //20
+          pattern_gen_table[221] = 8'h20; //10
+          pattern_gen_table[220] = 8'h20; //08
+          pattern_gen_table[219] = 8'h3E; //10
+          pattern_gen_table[218] = 8'h02; //20
+          pattern_gen_table[217] = 8'h02; //20
+          pattern_gen_table[216] = 8'h3E;
+
+          // Number 6
+          pattern_gen_table[231] = 8'h00;
+          pattern_gen_table[230] = 8'h3E; //20
+          pattern_gen_table[229] = 8'h22; //10
+          pattern_gen_table[228] = 8'h22; //08
+          pattern_gen_table[227] = 8'h3E; //10
+          pattern_gen_table[226] = 8'h02; //20
+          pattern_gen_table[225] = 8'h02; //20
+          pattern_gen_table[224] = 8'h3E;
+
+          // Number 7
+          pattern_gen_table[239] = 8'h00;
+          pattern_gen_table[238] = 8'h20; //20
+          pattern_gen_table[237] = 8'h20; //10
+          pattern_gen_table[236] = 8'h20; //08
+          pattern_gen_table[235] = 8'h20; //10
+          pattern_gen_table[234] = 8'h20; //20
+          pattern_gen_table[233] = 8'h20; //20
+          pattern_gen_table[232] = 8'h3E;
+
+          // Number 8
+          pattern_gen_table[247] = 8'h00;
+          pattern_gen_table[246] = 8'h3E; //20
+          pattern_gen_table[245] = 8'h22; //10
+          pattern_gen_table[244] = 8'h22; //08
+          pattern_gen_table[243] = 8'h3E; //10
+          pattern_gen_table[242] = 8'h22; //20
+          pattern_gen_table[241] = 8'h22; //20
+          pattern_gen_table[240] = 8'h3E;
+
           // Number 9
 	  pattern_gen_table[79] = 8'h00;
-	  pattern_gen_table[78] = 8'hF8;
- 	  pattern_gen_table[77] = 8'h88;
- 	  pattern_gen_table[76] = 8'h88;
- 	  pattern_gen_table[75] = 8'hF8;
- 	  pattern_gen_table[74] = 8'h08;
- 	  pattern_gen_table[73] = 8'h08;
-	  pattern_gen_table[72] = 8'h08;
+	  pattern_gen_table[78] = 8'h20;
+ 	  pattern_gen_table[77] = 8'h20;
+ 	  pattern_gen_table[76] = 8'h20;
+ 	  pattern_gen_table[75] = 8'h3E;
+ 	  pattern_gen_table[74] = 8'h22;
+ 	  pattern_gen_table[73] = 8'h22;
+	  pattern_gen_table[72] = 8'h3E;
 
           // Dash --> 10
           pattern_gen_table[80] = 8'h00;
@@ -335,10 +516,47 @@ module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, inpu
           pattern_gen_table[160] = 8'h94; //5d
 
 
-          for (i = 0; i < 32; i = i + 1) color_table[i] = {24'h000000, 24'hffffff}; // Background is black and white
+	  //Stars
+
+	  // 25
+	  pattern_gen_table[203]= 8'h01;        
+		 	  
+	  //  24	
+	  pattern_gen_table[199]= 8'h40;
+	  pattern_gen_table[194] = 8'h01;
+	  
+          //  23
+          pattern_gen_table[184]= 8'h00;
+	  pattern_gen_table[187] = 8'h20;
+	  pattern_gen_table[191] = 8'h80;
+
+	  //  22
+	  pattern_gen_table[181] = 8'h18;
+	  pattern_gen_table[182] = 8'h18;
+
+          //  21
+	  pattern_gen_table[175] = 8'h18;
+          pattern_gen_table[174] = 8'h24;
+	  pattern_gen_table[173] = 8'h42;
+	  pattern_gen_table[172] = 8'h99;
+	  pattern_gen_table[171] = 8'h99;
+	  pattern_gen_table[170] = 8'h42;
+	  pattern_gen_table[169] = 8'h24;
+	  pattern_gen_table[168] = 8'h18;
+
+
+          //for (i = 0; i < 255; i = i + 1) color_table[i] = {24'h000000, 24'hffffff}; // Background is black and white
           for (i = 0; i < 11; i = i+1) color_table[i] = {24'hff0000, 24'h000000};  // Numbers are red and black
           for (i = 11; i < 18; i = i+1) color_table[i] = {24'h00ffff, 24'h000000}; // Letters are blue and black
           color_table[20] = {24'h00ff00, 24'h000000}; // Color scheme for spaceship
+
+         
+          for (i = 21; i < 26; i = i+1) color_table[i]= {24'h3374ff, 24'h000000};
+	  color_table[22]= {24'hffffff, 24'h000000};
+	  
+          for (i = 26; i < 31; i = i+1) color_table[i] = {24'hff0000, 24'h000000};
+          color_table[34]= {24'h000000, 24'h000000};
+	  
 
         end
 
@@ -347,9 +565,22 @@ module tile_generator (input logic [10:0] hcount, input logic [9:0] vcount, inpu
       assign pixel_col = hcount[3:1];
       assign final_color = pixel_row[pixel_col] == 1 ? pattern_colors[47:24] : pattern_colors[23:0];
 
+       
       always_ff @(posedge clk) begin
-              tile_name <= pattern_name_table[base_add];
 
+	      case (score)
+		   8'h0: pattern_name_table[96]=0; 
+		   8'h1: pattern_name_table[96]=1;
+		   8'h2: pattern_name_table[96]=2;
+		   8'h3: pattern_name_table[96]=3;
+          	   8'h4: pattern_name_table[96]=26;
+		   8'h5: pattern_name_table[96]=27;
+                   8'h6: pattern_name_table[96]=28;
+                   8'h7: pattern_name_table[96]=29;
+                   8'h8: pattern_name_table[96]=30;
+                   8'h9: pattern_name_table[96]=9;  
+	      endcase
+	      tile_name = pattern_name_table[base_add];
               pixel_row <= pattern_gen_table[gen_add];
 
               pattern_colors <= color_table[tile_name];
